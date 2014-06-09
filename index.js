@@ -106,7 +106,7 @@ module.exports = function(initOptions){
         throw new Error("Invalid arguments for initialization of currency module.");
       }
       //default should be "./storage/rates.txt"
-      currencyFile = optionsObj.currencyFile || "../storage/rates.txt";
+      currencyFile = optionsObj.currencyFile || path.join(__dirname, './storage/rates.txt');
       //time in milis, default should be 1 hour = 3600000 milis
       updateInterval = optionsObj.updateInterval || 3600000;
       //necessary for the module to work

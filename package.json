@@ -1,8 +1,9 @@
 {
   "name": "simple-currency-conversion",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "simple module to give live or static currency conversion",
   "main": "index.js",
+  "directories": ["lib", "storage", "test"],
   "scripts": {
     "test": "mocha -R spec"
   },
