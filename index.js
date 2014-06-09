@@ -13,21 +13,27 @@ Number.prototype.round = function(places) {
 };
 
 module.exports = function(initOptions){
-  //should provide access methods to access the flat file storage of exchange rate data
-
-  //make it so that the module can only be initialized once? similar to the underscore _.once method?
-  // var initialized = false;
 
   var currencyFile;
   var updateInterval;
   var baseCurrency;
   var openExchangeRatesAppId;
   var ratesUpdatedAt;
+  //TODO: implement live rates only
   var liveRatesOnly;
 
   var currencyModule = {};
 
   var updateRates = function(apiKey){
+    if(!apiKey){
+      return new Promise(function(resolve, reject){
+        if(currencyFile === '../storage/rates.txt'){
+          reject('no apiKey specified to retrieve rates and no static file of rates provided.');
+        }
+        resolve();
+      });
+    }
+
     var now = new Date().getTime();
 
     //if the rates have been updated within the alloted update interval, resolve promise to move to next function
@@ -147,9 +153,9 @@ module.exports = function(initOptions){
   };
   
   currencyModule.convertCurrency = function(amount, from, to){
-    return this.conversionRate(from, to)
+    return currencyModule.conversionRate(from, to)
     .then(function(rate){
-      return amount * rate;
+      return (amount * rate).round(2);
     });
 
   };
