@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var openExchange = require('./lib/openExchange');
 var Promise = require('bluebird');
+var profiles = require('./lib/currencyProfiles');
 
 fs = Promise.promisifyAll(fs);
 
@@ -22,6 +23,7 @@ module.exports = function(initOptions){
   var baseCurrency;
   var openExchangeRatesAppId;
   var ratesUpdatedAt;
+  var liveRatesOnly;
 
   var currencyModule = {};
 
@@ -32,7 +34,6 @@ module.exports = function(initOptions){
     //if not, request updated rates from api, write to file, then resolve promise to pass control flow on
     return new Promise(function(resolve, reject){
       if(now - ratesUpdatedAt < updateInterval){
-        console.log('up to date');
         resolve();
       } else {
         resolve(
@@ -40,10 +41,14 @@ module.exports = function(initOptions){
           .then(function(ratesObj){
             ratesUpdatedAt = ratesObj.timestamp * 1000; //convert to millis (openExchange returns time in seconds)
             var ratesBuffer = "";
+            var symbol;
             for(var rate in ratesObj.rates){
-              // console.log('number ', ratesObj.rates[rate]);
-              // console.log('number rounded ', ratesObj.rates[rate].round(2));
-              ratesBuffer += rate + "= " + ratesObj.rates[rate].round(2) + "\n";
+              if(profiles[rate] && profiles[rate].symbol_native){
+                symbol = profiles[rate].symbol_native;
+              } else {
+                symbol = "";
+              }
+              ratesBuffer += rate + "=" + symbol + " " + ratesObj.rates[rate].round(2) + "\n";
             }
             return ratesBuffer;
           })
@@ -73,9 +78,11 @@ module.exports = function(initOptions){
         equalSplit = currencies[i].split('=');
         spaceSplit = equalSplit[1].split(" ");
         currencyCode = equalSplit[0];
-        // TODO: add currencySymbol = spaceSplit[0];
+        currencySymbol = spaceSplit[0];
         currencyRate = spaceSplit[1];
-        ratesBuffer += "\"" + currencyCode + "\":" + currencyRate;
+        
+        //add mapping by for rate and symbol by currency code
+        ratesBuffer += "\"" + currencyCode + "\":{\"rate\":" + currencyRate + ",\"symbol\":\"" + currencySymbol + "\"}";
         
         //only add a comma if it is not the last in the list
         if(i < currencies.length -2){
@@ -88,7 +95,6 @@ module.exports = function(initOptions){
   };
 
   currencyModule.init = function(optionsObj){
-    // console.log('optionsObj', optionsObj);
 
       if(!optionsObj || Object.prototype.toString.call(optionsObj) !== "[object Object]"){
         throw new Error("Invalid arguments for initialization of currency module.");
@@ -96,12 +102,14 @@ module.exports = function(initOptions){
       //default should be "./storage/rates.txt"
       currencyFile = optionsObj.currencyFile || "../storage/rates.txt";
       //time in milis, default should be 1 hour = 3600000 milis
-      updateInterval= optionsObj.updateInterval || 3600000;
+      updateInterval = optionsObj.updateInterval || 3600000;
       //necessary for the module to work
       openExchangeRatesAppId = optionsObj.openExchangeRatesAppId;
+
+      //initialize liveLoadOnly to false if not specified
+      liveLoadOnly = optionsObj.liveLoadOnly || false;
       
-      //TODO: figure out if/how to get this working. on read lookup from api will have to map all currencies over to the specified base.
-      //default to US Dollars this might get more complicated than it's worth
+      //TODO: make the option available for setting the default currency to something other than USD
       // baseCurrency = optionsObj.baseCurrency || "USD";
       
       //perform initial load of rates if open exchange api key is specified
@@ -122,25 +130,19 @@ module.exports = function(initOptions){
 
 
 
-
+  // TODO: add a method to return the full currency profile for a given currency
   // currencyModule.getCurrencyForCountry = function(countryCode){
-  //   var currencyProfile = {};
-  //   updateRates(openExchangeRatesAppId)
-  //   .then(function(){
-  //     console.log('doing some stuff to lookup currency');
-  //   });
-  //   // add these to profile {currencyCode:"", currencySymbol:, conversionRateFromDollar};
-    
-  //   // return currencyInfo;
   // };
   
   currencyModule.conversionRate = function(from, to){
-    return getRatesObject()
+    return updateRates().then(function(){
+      return getRatesObject();
+    })
     .then(function(rates){
       if(!rates[from] || !rates[to]){
         throw new Error(to + " and/or " + from + " is not a valid currency code/symbol");
       }
-      return rates[to] * (1 / rates[from]);
+      return rates[to].rate * (1 / rates[from].rate);
     });
   };
   

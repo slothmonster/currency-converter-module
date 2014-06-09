@@ -4,7 +4,7 @@ currency.init({openExchangeRatesAppId: process.env.OPEN_EXCHANGE_KEY});
 
 // setTimeout(function(){currency.getCurrencyForCountry();}, 5000);
 setTimeout(function(){
-  currency.conversionRate("GBP", "USD")
+  currency.conversionRate("USD", "USD")
   .then(function(x){
     console.log('loggin mr x', x);
   });
