@@ -5,6 +5,12 @@ var Promise = require('bluebird');
 
 fs = Promise.promisifyAll(fs);
 
+//helper method to handle the rounding of numbers to two decimal places
+//code from Stack Overflow users MarkG and Lavamantis http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript
+Number.prototype.round = function(places) {
+  return +(Math.round(this + "e+" + places) + "e-" + places);
+};
+
 module.exports = function(initOptions){
   //should provide access methods to access the flat file storage of exchange rate data
 
@@ -21,6 +27,7 @@ module.exports = function(initOptions){
 
   var updateRates = function(apiKey){
     var now = new Date().getTime();
+
     //if the rates have been updated within the alloted update interval, resolve promise to move to next function
     //if not, request updated rates from api, write to file, then resolve promise to pass control flow on
     return new Promise(function(resolve, reject){
@@ -34,7 +41,9 @@ module.exports = function(initOptions){
             ratesUpdatedAt = ratesObj.timestamp * 1000; //convert to millis (openExchange returns time in seconds)
             var ratesBuffer = "";
             for(var rate in ratesObj.rates){
-              ratesBuffer += rate + "= " + ratesObj.rates[rate] + "\n";
+              // console.log('number ', ratesObj.rates[rate]);
+              // console.log('number rounded ', ratesObj.rates[rate].round(2));
+              ratesBuffer += rate + "= " + ratesObj.rates[rate].round(2) + "\n";
             }
             return ratesBuffer;
           })
@@ -108,7 +117,6 @@ module.exports = function(initOptions){
   };
 
   if(initOptions){
-    // console.log('initOptions ==== ', initOptions);
     currencyModule.init(initOptions);
   }
 
