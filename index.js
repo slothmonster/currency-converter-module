@@ -137,8 +137,15 @@ module.exports = function(initOptions){
 
 
   // TODO: add a method to return the full currency profile for a given currency
-  // currencyModule.getCurrencyForCountry = function(countryCode){
-  // };
+  currencyModule.getCurrencyProfile = function(countryCode){
+    return new Promise(function(resolve, reject){
+      if(profiles[countryCode]){
+        resolve(profiles[countryCode]);
+      } else {
+        reject("no currency available for that country code");
+      }
+    });
+  };
   
   currencyModule.conversionRate = function(from, to){
     return updateRates().then(function(){
